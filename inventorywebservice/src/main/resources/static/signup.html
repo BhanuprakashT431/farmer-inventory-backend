@@ -22,18 +22,27 @@
             z-index: 1;
         }
 
-        .login-card {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-            width: 380px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 2;
-            color: white;
-        }
+      .login-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+
+    /* 1. Change width to a percentage for mobile */
+    width: 90%;
+
+    /* 2. Set max-width so it stays 380px on Desktop */
+    max-width: 380px;
+
+    /* 3. Add margin to ensure it doesn't touch the screen edges */
+    margin: 20px;
+
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 2;
+    color: white;
+}
 
         .logo-icon { font-size: 3rem; color: #4ade80; margin-bottom: 10px; text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         h2 { margin: 0 0 5px 0; font-weight: 600; }

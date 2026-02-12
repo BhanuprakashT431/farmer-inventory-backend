@@ -95,6 +95,14 @@
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
     </style>
+    @media (max-width: 480px) {
+    .login-card {
+    padding: 25px 20px; /* Reduces space inside the card on phones */
+    }
+    h2 {
+    font-size: 1.5rem; /* Shrinks the welcome text slightly */
+    }
+    }
 </head>
 <body>
 
