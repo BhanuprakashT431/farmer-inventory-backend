@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Up - FarmMarket</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            margin: 0;
+            position: relative;
+        }
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(20, 50, 20, 0.8), rgba(0, 0, 0, 0.6));
+            z-index: 1;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            width: 380px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 2;
+            color: white;
+        }
+
+        .logo-icon { font-size: 3rem; color: #4ade80; margin-bottom: 10px; text-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        h2 { margin: 0 0 5px 0; font-weight: 600; }
+        p { color: #ddd; font-size: 0.9rem; margin-bottom: 25px; }
+
+        .input-group { position: relative; margin-bottom: 20px; text-align: left; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #ccc; }
+        .input-group select { appearance: none; cursor: pointer; }
+
+        input, select {
+            width: 100%; padding: 12px 12px 12px 45px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 50px;
+            color: white; font-size: 1rem; outline: none; transition: 0.3s;
+            font-family: 'Poppins', sans-serif;
+        }
+        input::placeholder { color: #bbb; }
+        input:focus, select:focus { border-color: #4ade80; background: rgba(0, 0, 0, 0.4); }
+
+        /* Fix for select dropdown arrow */
+        .select-arrow { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #ccc; pointer-events: none; }
+        option { background: #333; color: white; }
+
+        button {
+            width: 100%; padding: 14px;
+            background: linear-gradient(45deg, #16a34a, #22c55e);
+            color: white; border: none; border-radius: 50px;
+            font-size: 1.1rem; font-weight: 600; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(22, 163, 74, 0.4);
+            transition: 0.3s;
+        }
+        button:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(22, 163, 74, 0.6); }
+
+        .link { margin-top: 20px; font-size: 0.9rem; color: #eee; }
+        .link a { color: #4ade80; text-decoration: none; font-weight: 600; }
+        .link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <div class="logo-icon"><i class="fas fa-user-plus"></i></div>
+    <h2>Join Us</h2>
+    <p>Start your journey with FarmMarket</p>
+
+    <div class="input-group">
+        <i class="fas fa-user"></i>
+        <input type="text" id="username" placeholder="Choose Username">
+    </div>
+    <div class="input-group">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="password" placeholder="Create Password">
+    </div>
+
+    <div class="input-group">
+        <i class="fas fa-users"></i>
+        <select id="role">
+            <option value="BUYER">I am a Buyer</option>
+            <option value="FARMER">I am a Farmer</option>
+        </select>
+        <i class="fas fa-chevron-down select-arrow"></i>
+    </div>
+
+    <button onclick="performSignup()">CREATE ACCOUNT</button>
+    <div class="link">Already have an account? <a href="login.html">Login</a></div>
+</div>
+
+<script>
+    async function performSignup() {
+        const u = document.getElementById("username").value;
+        const p = document.getElementById("password").value;
+        const r = document.getElementById("role").value;
+
+        if(!u || !p) { alert("Please fill all fields"); return; }
+
+        const response = await fetch("http://localhost:8080/register", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: u, password: p, role: r })
+        });
+
+        const result = await response.json(); // Expecting boolean true/false
+
+        if (result === true) {
+            alert("Account Created! Please Login.");
+            window.location.href = "login.html";
+        } else {
+            alert("Username already exists. Try another.");
+        }
+    }
+</script>
+</body>
+</html>

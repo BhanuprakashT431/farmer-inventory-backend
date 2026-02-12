@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Inventory Scanner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <style>
+        #interactive.viewport { position: relative; width: 100%; height: auto; overflow: hidden; }
+        #interactive.viewport canvas, video { width: 100%; height: auto; }
+        .result-card { border: 2px solid #2ecc71; padding: 20px; margin-top: 20px; border-radius: 8px; display: none; }
+    </style>
+</head>
+<body>
+<h1>Barcode Scanner Dashboard</h1>
+
+<div id="interactive" class="viewport"></div>
+
+<div id="result" class="result-card">
+    <h3>Product Found!</h3>
+    <p id="pName"></p>
+    <p id="pQty"></p>
+    <p id="pPrice"></p>
+</div>
+
+<script>
+    // Start the camera and scanning
+    Quagga.init({
+        inputStream : { name : "Live", type : "LiveStream", target: document.querySelector('#interactive') },
+        decoder : { readers : ["code_128_reader", "ean_reader", "upc_reader"] }
+    }, function(err) {
+        if (err) { console.log(err); return; }
+        Quagga.start();
+    });
+
+    // What happens when a barcode is detected
+    Quagga.onDetected(function(data) {
+        let code = data.codeResult.code;
+        console.log("Barcode Scanned: " + code);
+
+        // Talk to your Java Backend
+        fetch('/products/scan/' + code)
+            .then(response => response.json())
+            .then(product => {
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('pName').innerText = "Name: " + product.productName;
+                document.getElementById('pQty').innerText = "Quantity: " + product.quantity;
+                document.getElementById('pPrice').innerText = "Price: ₹" + product.price;
+            })
+            .catch(err => alert("Product not in database!"));
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History - FarmMarket</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #0f172a; margin: 0; padding: 40px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1); }
+
+        /* HEADER */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
+        .header h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.5rem; }
+        .btn-back { text-decoration: none; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 8px 16px; border-radius: 30px; transition: 0.2s; }
+        .btn-back:hover { background: #e2e8f0; color: #0f172a; }
+
+        /* TABLE */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px; color: #64748b; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+
+        /* BADGES */
+        .badge { padding: 6px 12px; border-radius: 30px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; letter-spacing: 0.5px; }
+
+        /* Buyer Colors */
+        .badge-buy { background: #dbeafe; color: #1e40af; } /* Blue */
+
+        /* Farmer Colors */
+        .badge-add { background: #f3f4f6; color: #374151; } /* Grey */
+        .badge-sold { background: #dcfce7; color: #166534; } /* Green */
+        .badge-del { background: #fee2e2; color: #991b1b; } /* Red */
+
+        /* EMPTY STATE */
+        .empty-state { text-align: center; padding: 60px; color: #94a3b8; display: none; }
+        .empty-state i { font-size: 3rem; margin-bottom: 15px; opacity: 0.5; }
+        .empty-state p { font-size: 1.1rem; margin: 0; }
+
+        .price-col { font-weight: 700; color: #0f172a; }
+        .total-row { background: #f8fafc; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 id="pageTitle"><i class="fas fa-history" style="color:#3b82f6;"></i> Transaction Log</h2>
+        <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+
+    <div id="loading" style="text-align:center; padding:20px; color:#64748b;">Loading records...</div>
+
+    <table id="historyTable" style="display:none;">
+        <thead>
+        <tr>
+            <th>Time</th>
+            <th>Action</th>
+            <th>Product Details</th>
+            <th>Quantity</th>
+            <th>Total Value</th>
+        </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <div id="emptyState" class="empty-state">
+        <i class="fas fa-receipt"></i>
+        <p>No transactions found yet.</p>
+    </div>
+</div>
+
+<script>
+    const API_BASE = "http://localhost:8080/products/history";
+    const user = localStorage.getItem("loggedInUser");
+    const role = localStorage.getItem("userRole");
+
+    // 1. Update Title based on Role
+    if (role === "FARMER") {
+        document.getElementById("pageTitle").innerHTML = `<i class="fas fa-warehouse" style="color:#10b981;"></i> Inventory Log`;
+    } else {
+        document.getElementById("pageTitle").innerHTML = `<i class="fas fa-shopping-bag" style="color:#3b82f6;"></i> My Orders`;
+    }
+
+    window.onload = async function() {
+        if (!user) {
+            alert("Please login first.");
+            window.location.href = "login.html";
+            return;
+        }
+
+        try {
+            // 2. Select Endpoint based on Role
+            let url = "";
+            if (role === "FARMER") {
+                url = `${API_BASE}/farmer/${user}`;
+            } else {
+                url = `${API_BASE}/buyer/${user}`;
+            }
+
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Failed to fetch");
+
+            const data = await response.json();
+            renderTable(data);
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById("loading").innerText = "Error loading data. Is the Backend running?";
+        }
+    };
+
+    function renderTable(data) {
+        document.getElementById("loading").style.display = "none";
+        const table = document.getElementById("historyTable");
+        const empty = document.getElementById("emptyState");
+        const tbody = document.getElementById("tableBody");
+
+        if (data.length === 0) {
+            empty.style.display = "block";
+            return;
+        }
+
+        table.style.display = "table";
+        tbody.innerHTML = "";
+
+        // Show newest first
+        data.reverse().forEach(t => {
+            let badgeClass = "badge-add";
+            let actionText = t.type;
+            let icon = "";
+
+            // Customize Badge Logic
+            if (role === "BUYER") {
+                badgeClass = "badge-buy";
+                actionText = "PURCHASED";
+                icon = "shopping-cart";
+            } else {
+                // Farmer Logic
+                if (t.type === "SOLD") { badgeClass = "badge-sold"; icon = "hand-holding-dollar"; }
+                else if (t.type === "ADDED") { badgeClass = "badge-add"; icon = "plus"; }
+                else if (t.type === "DELETED") { badgeClass = "badge-del"; icon = "trash"; }
+                else if (t.type === "UPDATED") { badgeClass = "badge-add"; icon = "pen"; }
+            }
+
+            const date = new Date(t.timestamp).toLocaleString();
+            const total = (t.price * t.quantity).toFixed(2);
+
+            const row = `
+            <tr>
+                <td style="color:#64748b; font-size:0.85rem;">${date}</td>
+                <td><span class="badge ${badgeClass}"><i class="fas fa-${icon}"></i> ${actionText}</span></td>
+                <td><strong>${t.productName}</strong></td>
+                <td>${t.quantity} Units</td>
+                <td class="price-col">₹${total}</td>
+            </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+</script>
+</body>
+</html>
