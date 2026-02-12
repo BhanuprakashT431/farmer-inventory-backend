@@ -22,30 +22,53 @@
 </div>
 
 <script>
+    // 1. Setup the Automatic URL Switcher
+    const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:8080"
+        : "https://farmer-inventory-managment.onrender.com";
+
+    let isScanning = false; // To prevent multiple scans at once
+
     // Start the camera and scanning
     Quagga.init({
         inputStream : { name : "Live", type : "LiveStream", target: document.querySelector('#interactive') },
-        decoder : { readers : ["code_128_reader", "ean_reader", "upc_reader"] }
+        decoder : { readers : ["code_128_reader", "ean_reader", "upc_reader", "ean_8_reader"] }
     }, function(err) {
         if (err) { console.log(err); return; }
         Quagga.start();
     });
 
     // What happens when a barcode is detected
-    Quagga.onDetected(function(data) {
+    Quagga.onDetected(async function(data) {
+        if (isScanning) return; // Wait if we are already processing a scan
+
         let code = data.codeResult.code;
         console.log("Barcode Scanned: " + code);
+        isScanning = true;
 
-        // Talk to your Java Backend
-        fetch('/products/scan/' + code)
-            .then(response => response.json())
-            .then(product => {
-                document.getElementById('result').style.display = 'block';
-                document.getElementById('pName').innerText = "Name: " + product.productName;
-                document.getElementById('pQty').innerText = "Quantity: " + product.quantity;
-                document.getElementById('pPrice').innerText = "Price: ₹" + product.price;
-            })
-            .catch(err => alert("Product not in database!"));
+        try {
+            // 2. Use the dynamic API_BASE_URL to talk to your Java Backend
+            const response = await fetch(`${API_BASE_URL}/products/scan/${code}`);
+
+            if (!response.ok) {
+                throw new Error("Product not found");
+            }
+
+            const product = await response.json();
+
+            // 3. Update the UI with data from Neon Cloud
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('pName').innerText = "Name: " + product.productName;
+            document.getElementById('pQty').innerText = "Quantity: " + product.quantity;
+            document.getElementById('pPrice').innerText = "Price: ₹" + product.price;
+
+        } catch (err) {
+            console.error(err);
+            alert("Barcode: " + code + " not found in database!");
+        } finally {
+            // 4. Wait 3 seconds before allowing another scan
+            setTimeout(() => { isScanning = false; }, 3000);
+        }
     });
 </script>
 </body>

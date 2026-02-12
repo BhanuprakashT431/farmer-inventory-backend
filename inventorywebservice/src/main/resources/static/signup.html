@@ -102,25 +102,41 @@
 </div>
 
 <script>
+    // 1. Setup the Automatic URL Switcher
+    const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:8080"
+        : "https://farmer-inventory-managment.onrender.com";
+
     async function performSignup() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
         const r = document.getElementById("role").value;
 
-        if(!u || !p) { alert("Please fill all fields"); return; }
+        if(!u || !p) {
+            alert("Please fill all fields");
+            return;
+        }
 
-        const response = await fetch("http://localhost:8080/register", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: u, password: p, role: r })
-        });
+        try {
+            // 2. Use the dynamic API_BASE_URL to register the user in the cloud
+            const response = await fetch(`${API_BASE_URL}/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: u, password: p, role: r })
+            });
 
-        const result = await response.json(); // Expecting boolean true/false
+            // Handle the response (expecting true/false as a boolean from Spring Boot)
+            const result = await response.json();
 
-        if (result === true) {
-            alert("Account Created! Please Login.");
-            window.location.href = "login.html";
-        } else {
-            alert("Username already exists. Try another.");
+            if (result === true) {
+                alert("Account Created! Please Login.");
+                window.location.href = "login.html";
+            } else {
+                alert("Username already exists or registration failed. Try another.");
+            }
+        } catch (error) {
+            console.error("Signup Error:", error);
+            alert("Unable to connect to the cloud server. Please wait a moment and try again.");
         }
     }
 </script>

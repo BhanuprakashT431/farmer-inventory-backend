@@ -101,22 +101,45 @@
 </div>
 
 <script>
+    // 1. Setup the Automatic URL Switcher
+    const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:8080"
+        : "https://farmer-inventory-managment.onrender.com";
+
     async function performLogin() {
         const u = document.getElementById("username").value;
         const p = document.getElementById("password").value;
+        const errorMsg = document.getElementById("errorMsg");
 
-        const response = await fetch("http://localhost:8080/login", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: u, password: p })
-        });
-        const data = await response.json();
+        // Reset error message display
+        errorMsg.style.display = "none";
 
-        if (data.status === "success") {
-            localStorage.setItem("loggedInUser", u);
-            localStorage.setItem("userRole", data.role);
-            window.location.href = "index.html";
-        } else {
-            document.getElementById("errorMsg").style.display = "block";
+        try {
+            // 2. Use the dynamic API_BASE_URL
+            const response = await fetch(`${API_BASE_URL}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            if (!response.ok) {
+                throw new Error("Invalid Credentials");
+            }
+
+            const data = await response.json();
+
+            // 3. Handle success based on your backend response
+            if (data.status === "success") {
+                localStorage.setItem("loggedInUser", u);
+                localStorage.setItem("userRole", data.role);
+                window.location.href = "index.html"; // Ensure this filename is correct
+            } else {
+                errorMsg.style.display = "block";
+            }
+        } catch (error) {
+            console.error("Login Error:", error);
+            errorMsg.innerHTML = `<i class="fas fa-circle-exclamation"></i> Server Connection Failed`;
+            errorMsg.style.display = "block";
         }
     }
 </script>
