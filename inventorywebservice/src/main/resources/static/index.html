@@ -196,7 +196,7 @@
 <div id="toast"><i class="fas fa-check"></i> Success</div>
 
 <script>
-    // AUTOMATIC URL SWITCHER FOR RENDER
+    // AUTOMATIC URL SWITCHER FOR RENDER - DO NOT CHANGE THIS
     const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
         ? "http://localhost:8080"
         : "https://farmer-inventory-managment.onrender.com";
@@ -246,31 +246,60 @@
         } catch(e) { console.error("Error fetching", e); }
     }
 
-    // --- CHARTS ---
+    // --- CHARTS (Revenue = PIE) ---
     async function initCharts() {
         try {
             const res = await fetch(`${HISTORY_URL}/farmer/${user}`);
             const history = await res.json();
+
             const sold = history.filter(t => t.type === 'SOLD');
             const labels = [...new Set(sold.map(t => t.productName))];
+
             const dataSales = labels.map(l => sold.filter(t => t.productName === l).reduce((a,b) => a+b.quantity, 0));
             const dataRev = labels.map(l => sold.filter(t => t.productName === l).reduce((a,b) => a+(b.quantity*b.price), 0));
+
             const myStock = allProducts.filter(p => p.farmerName === user);
 
             if(stockChart) stockChart.destroy(); if(salesChart) salesChart.destroy(); if(incomeChart) incomeChart.destroy();
-            salesChart = new Chart(document.getElementById('salesChart'), { type:'doughnut', data: { labels: labels.length?labels:['None'], datasets:[{data:labels.length?dataSales:[1], backgroundColor:['#3b82f6','#f59e0b','#10b981','#ef4444']}] } });
-            incomeChart = new Chart(document.getElementById('incomeChart'), { type:'pie', data: { labels: labels.length?labels:['None'], datasets:[{label:'Revenue', data:labels.length?dataRev:[0], backgroundColor: ['rgba(255, 159, 64, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(153, 102, 255, 0.8)'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } } });
-            stockChart = new Chart(document.getElementById('stockChart'), { type:'bar', data: { labels:myStock.map(p=>p.productName), datasets:[{label:'Stock', data:myStock.map(p=>p.quantity), backgroundColor:'#10b981'}] } });
+
+            salesChart = new Chart(document.getElementById('salesChart'), {
+                type:'doughnut',
+                data: { labels: labels.length?labels:['None'], datasets:[{data:labels.length?dataSales:[1], backgroundColor:['#3b82f6','#f59e0b','#10b981','#ef4444']}] }
+            });
+
+            incomeChart = new Chart(document.getElementById('incomeChart'), {
+                type:'pie',
+                data: {
+                    labels: labels.length?labels:['None'],
+                    datasets:[{
+                        label:'Revenue',
+                        data:labels.length?dataRev:[0],
+                        backgroundColor: ['rgba(255, 159, 64, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(153, 102, 255, 0.8)']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+
+            stockChart = new Chart(document.getElementById('stockChart'), {
+                type:'bar',
+                data: { labels:myStock.map(p=>p.productName), datasets:[{label:'Stock', data:myStock.map(p=>p.quantity), backgroundColor:'#10b981'}] }
+            });
         } catch(e) { console.error("Chart Error", e); }
     }
 
-    // --- BUYER FIX ---
+    // --- BUY NOW FIX: Ensuring the purchaseId is always valid ---
     async function confirmPurchase() {
-        // FIX: Ensure we use the correct ID for the purchase request
-        const purchaseId = selectedProduct.productId || selectedProduct.id;
+        if (!selectedProduct) return;
+
+        // Handling both 'productId' and 'id' variations from the cloud database
+        const purchaseId = String(selectedProduct.productId || selectedProduct.id);
 
         if (!purchaseId || purchaseId === 'undefined') {
-            alert("Error: Product ID is invalid.");
+            alert("Error: Invalid Product ID for cloud request.");
             return;
         }
 
@@ -290,9 +319,15 @@
                 document.getElementById("tyQty").innerText = currentQty;
                 document.getElementById("tyTotal").innerText = "₹" + (currentQty * selectedProduct.price);
                 document.getElementById("successModal").style.display = "flex";
-                fetchProducts(); // Refresh data
-            } else { alert("Error: " + await res.text()); }
-        } catch(e) { console.error(e); }
+                fetchProducts(); // Refresh cloud data instantly
+            } else {
+                const errMsg = await res.text();
+                alert("Error: " + errMsg);
+            }
+        } catch(e) {
+            console.error("Purchase failed", e);
+            alert("Server is currently waking up from sleep mode. Please try again in 10 seconds.");
+        }
     }
 
     async function checkNotifications() { try { const res = await fetch(`${API_URL}/notifications/${user}`); if(res.ok) { const msgs = await res.json(); const badge = document.getElementById("notifBadge"); const list = document.getElementById("notifList"); list.innerHTML = ""; if(msgs.length > 0) { badge.style.display = "flex"; badge.innerText = msgs.length; msgs.forEach(m => { list.innerHTML += `<div class="notif-item"><div style="flex-grow:1">${m.message}</div><i class="fas fa-times" style="color:#ccc;cursor:pointer;" onclick="deleteNotif(${m.id})"></i></div>`; }); } else { badge.style.display = "none"; list.innerHTML = "<div style='padding:15px;text-align:center;color:#999'>No notifications</div>"; } } } catch(e) {} }
@@ -309,7 +344,8 @@
     }
 
     function editItem(id) {
-        const p = allProducts.find(x => (x.productId || x.id) === id); if(!p) return;
+        const p = allProducts.find(x => String(x.productId || x.id) === String(id));
+        if(!p) return;
         document.getElementById("pId").value = p.productId || p.id; document.getElementById("pId").disabled = true;
         document.getElementById("pName").value = p.productName; document.getElementById("pQty").value = p.quantity;
         document.getElementById("pPrice").value = p.price; document.getElementById("pDate").value = p.expiryDate;
@@ -328,7 +364,14 @@
         } catch(e) { console.error("Server waking up...", e); }
     }
 
-    function resetForm() { document.getElementById("pId").value = ""; document.getElementById("pId").disabled = false; document.getElementById("pName").value = ""; document.getElementById("pQty").value = ""; document.getElementById("pPrice").value = ""; document.getElementById("pDate").value = ""; document.getElementById("pPhone").value = ""; document.getElementById("pEmail").value = ""; document.getElementById("btnMainAction").innerText = "Add Product"; }
+    function resetForm() {
+        document.getElementById("pId").value = ""; document.getElementById("pId").disabled = false;
+        document.getElementById("pName").value = ""; document.getElementById("pQty").value = "";
+        document.getElementById("pPrice").value = ""; document.getElementById("pDate").value = "";
+        document.getElementById("pPhone").value = ""; document.getElementById("pEmail").value = "";
+        document.getElementById("btnMainAction").innerText = "Add Product";
+    }
+
     async function deleteItem(id) { if(confirm("Delete item?")) { await fetch(`${API_URL}/${id}`, {method:"DELETE"}); fetchProducts(); initCharts(); } }
 
     function openChartModal(type) {
@@ -360,13 +403,14 @@
         const grid = document.getElementById("buyerGrid"); grid.innerHTML = "";
         data.forEach(p => {
             const isSold = p.quantity === 0;
-            const pid = p.productId || p.id;
+            const pid = String(p.productId || p.id);
             grid.innerHTML += `<div class="product-card"><div class="card-img"><img src="${getImg(p.productName)}" style="width:100%;height:100%;object-fit:cover;"><div class="price-tag">₹${p.price}/unit</div></div><div class="card-body"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>${p.productName}</h3><span style="font-size:0.8rem;background:#ecfdf5;padding:2px 8px;border-radius:4px;">${p.quantity} Units</span></div><p style="color:#64748b; font-size:0.9rem"><i class="fas fa-user"></i> ${p.farmerName}</p><div style="display:grid; grid-template-columns:1fr 3fr; gap:10px; margin-top:15px;"><button class="btn-contact" onclick="showContact('${p.farmerName}','${p.farmerPhone}','${p.farmerEmail}')"><i class="fas fa-phone"></i></button>${isSold ? `<button disabled style="background:#e2e8f0; border:none; border-radius:8px; font-weight:600; color:#94a3b8;">Sold Out</button>` : `<button class="btn-buy" onclick="openBuyModal('${pid}')">Buy Now</button>`}</div></div></div>`;
         });
     }
 
     function openBuyModal(id) {
-        selectedProduct = allProducts.find(p => (p.productId || p.id) === id);
+        selectedProduct = allProducts.find(p => String(p.productId || p.id) === String(id));
+        if(!selectedProduct) return;
         currentQty = 1;
         document.getElementById("buyName").innerText = selectedProduct.productName;
         document.getElementById("buyFarmer").innerText = "by " + (selectedProduct.farmerName || "Unknown");
@@ -386,4 +430,3 @@
 </script>
 </body>
 </html>
-
