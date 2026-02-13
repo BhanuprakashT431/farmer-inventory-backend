@@ -246,54 +246,36 @@
         } catch(e) { console.error("Error fetching", e); }
     }
 
-    // --- CHARTS (Revenue = PIE) ---
+    // --- CHARTS ---
     async function initCharts() {
         try {
             const res = await fetch(`${HISTORY_URL}/farmer/${user}`);
             const history = await res.json();
-
             const sold = history.filter(t => t.type === 'SOLD');
             const labels = [...new Set(sold.map(t => t.productName))];
-
             const dataSales = labels.map(l => sold.filter(t => t.productName === l).reduce((a,b) => a+b.quantity, 0));
             const dataRev = labels.map(l => sold.filter(t => t.productName === l).reduce((a,b) => a+(b.quantity*b.price), 0));
-
             const myStock = allProducts.filter(p => p.farmerName === user);
 
             if(stockChart) stockChart.destroy(); if(salesChart) salesChart.destroy(); if(incomeChart) incomeChart.destroy();
-
-            salesChart = new Chart(document.getElementById('salesChart'), {
-                type:'doughnut',
-                data: { labels: labels.length?labels:['None'], datasets:[{data:labels.length?dataSales:[1], backgroundColor:['#3b82f6','#f59e0b','#10b981','#ef4444']}] }
-            });
-
-            incomeChart = new Chart(document.getElementById('incomeChart'), {
-                type:'pie',
-                data: {
-                    labels: labels.length?labels:['None'],
-                    datasets:[{
-                        label:'Revenue',
-                        data:labels.length?dataRev:[0],
-                        backgroundColor: ['rgba(255, 159, 64, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(153, 102, 255, 0.8)']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } }
-                }
-            });
-
-            stockChart = new Chart(document.getElementById('stockChart'), {
-                type:'bar',
-                data: { labels:myStock.map(p=>p.productName), datasets:[{label:'Stock', data:myStock.map(p=>p.quantity), backgroundColor:'#10b981'}] }
-            });
+            salesChart = new Chart(document.getElementById('salesChart'), { type:'doughnut', data: { labels: labels.length?labels:['None'], datasets:[{data:labels.length?dataSales:[1], backgroundColor:['#3b82f6','#f59e0b','#10b981','#ef4444']}] } });
+            incomeChart = new Chart(document.getElementById('incomeChart'), { type:'pie', data: { labels: labels.length?labels:['None'], datasets:[{label:'Revenue', data:labels.length?dataRev:[0], backgroundColor: ['rgba(255, 159, 64, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(153, 102, 255, 0.8)'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } } });
+            stockChart = new Chart(document.getElementById('stockChart'), { type:'bar', data: { labels:myStock.map(p=>p.productName), datasets:[{label:'Stock', data:myStock.map(p=>p.quantity), backgroundColor:'#10b981'}] } });
         } catch(e) { console.error("Chart Error", e); }
     }
 
+    // --- BUYER FIX ---
     async function confirmPurchase() {
+        // FIX: Ensure we use the correct ID for the purchase request
+        const purchaseId = selectedProduct.productId || selectedProduct.id;
+
+        if (!purchaseId || purchaseId === 'undefined') {
+            alert("Error: Product ID is invalid.");
+            return;
+        }
+
         try {
-            const res = await fetch(`${API_URL}/${selectedProduct.productId}/buy`, {
+            const res = await fetch(`${API_URL}/${purchaseId}/buy`, {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
                 body:JSON.stringify({
@@ -308,9 +290,7 @@
                 document.getElementById("tyQty").innerText = currentQty;
                 document.getElementById("tyTotal").innerText = "₹" + (currentQty * selectedProduct.price);
                 document.getElementById("successModal").style.display = "flex";
-
-                selectedProduct.quantity -= currentQty;
-                applyFilters();
+                fetchProducts(); // Refresh data
             } else { alert("Error: " + await res.text()); }
         } catch(e) { console.error(e); }
     }
@@ -323,7 +303,6 @@
     function renderFarmerTable(data) {
         const tbody = document.querySelector("#farmerTable tbody"); tbody.innerHTML = "";
         data.forEach(p => {
-            // FIX: Using productId || id to handle varying field names from backend/Neon database
             const realId = p.productId || p.id;
             tbody.innerHTML += `<tr style="border-bottom:1px solid #eee;"><td style="padding:15px;">${realId}</td><td><b>${p.productName}</b></td><td>${p.quantity}</td><td>₹${p.price}</td><td>${p.expiryDate || '--'}</td><td><button onclick="editItem('${realId}')" class="action-btn btn-edit"><i class="fas fa-pen"></i></button><button onclick="deleteItem('${realId}')" class="action-btn btn-delete"><i class="fas fa-trash"></i></button></td></tr>`;
         });
@@ -349,14 +328,7 @@
         } catch(e) { console.error("Server waking up...", e); }
     }
 
-    function resetForm() {
-        document.getElementById("pId").value = ""; document.getElementById("pId").disabled = false;
-        document.getElementById("pName").value = ""; document.getElementById("pQty").value = "";
-        document.getElementById("pPrice").value = ""; document.getElementById("pDate").value = "";
-        document.getElementById("pPhone").value = ""; document.getElementById("pEmail").value = "";
-        document.getElementById("btnMainAction").innerText = "Add Product";
-    }
-
+    function resetForm() { document.getElementById("pId").value = ""; document.getElementById("pId").disabled = false; document.getElementById("pName").value = ""; document.getElementById("pQty").value = ""; document.getElementById("pPrice").value = ""; document.getElementById("pDate").value = ""; document.getElementById("pPhone").value = ""; document.getElementById("pEmail").value = ""; document.getElementById("btnMainAction").innerText = "Add Product"; }
     async function deleteItem(id) { if(confirm("Delete item?")) { await fetch(`${API_URL}/${id}`, {method:"DELETE"}); fetchProducts(); initCharts(); } }
 
     function openChartModal(type) {
@@ -393,7 +365,17 @@
         });
     }
 
-    function openBuyModal(id) { selectedProduct = allProducts.find(p => (p.productId || p.id) === id); currentQty = 1; document.getElementById("buyName").innerText = selectedProduct.productName; document.getElementById("buyFarmer").innerText = "by " + (selectedProduct.farmerName || "Unknown"); document.getElementById("buyImg").src = getImg(selectedProduct.productName); document.getElementById("buyQtyInput").value = 1; updatePriceDisplay(); document.getElementById("buyModal").style.display = "flex"; }
+    function openBuyModal(id) {
+        selectedProduct = allProducts.find(p => (p.productId || p.id) === id);
+        currentQty = 1;
+        document.getElementById("buyName").innerText = selectedProduct.productName;
+        document.getElementById("buyFarmer").innerText = "by " + (selectedProduct.farmerName || "Unknown");
+        document.getElementById("buyImg").src = getImg(selectedProduct.productName);
+        document.getElementById("buyQtyInput").value = 1;
+        updatePriceDisplay();
+        document.getElementById("buyModal").style.display = "flex";
+    }
+
     function updateQty(change) { let newQty = currentQty + change; if(newQty < 1) newQty = 1; if(newQty > selectedProduct.quantity) newQty = selectedProduct.quantity; currentQty = newQty; document.getElementById("buyQtyInput").value = currentQty; updatePriceDisplay(); }
     function manualQtyInput() { const val = parseInt(document.getElementById("buyQtyInput").value); if(!isNaN(val) && val > 0) { currentQty = val > selectedProduct.quantity ? selectedProduct.quantity : val; } else { currentQty = 1; } document.getElementById("buyQtyInput").value = currentQty; updatePriceDisplay(); }
     function updatePriceDisplay() { document.getElementById("buyTotalPrice").innerText = "₹" + (currentQty * selectedProduct.price).toFixed(2); }
@@ -405,4 +387,3 @@
 </body>
 </html>
 
-Would you like me to double-check the server settings on Render to make sure the delete requests are authorized?
