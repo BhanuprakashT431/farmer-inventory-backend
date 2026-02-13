@@ -3,76 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction History - FarmMarket</title>
+    <title>Transaction History - FarmMarket Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #0f172a; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1); }
+        :root {
+            --primary: #10b981; --primary-dark: #047857; --accent: #f59e0b;
+            --dark: #0f172a; --light: #f8fafc; --glass: rgba(255, 255, 255, 0.95);
+        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: var(--dark); margin: 0; min-height: 100vh; }
+
+        /* NAVBAR - Matches Index UX */
+        nav { background: var(--glass); backdrop-filter: blur(10px); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .brand { font-size: 1.5rem; font-weight: 800; color: var(--primary-dark); display: flex; align-items: center; gap: 10px; }
+        .user-pill { background: #ecfdf5; color: #065f46; padding: 8px 16px; border-radius: 50px; font-weight: 600; font-size: 0.9rem; border: 1px solid #a7f3d0; }
+        .btn-logout { background: #fee2e2; color: #ef4444; width: 35px; height: 35px; border-radius: 50%; border: none; cursor: pointer; transition: 0.2s; }
+
+        /* CONTENT CONTAINER */
+        .container { max-width: 1000px; margin: 40px auto; padding: 0 20px 60px; }
+        .card { background: white; border-radius: 24px; padding: 30px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1); }
 
         /* HEADER */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .header h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.3rem; }
-        .btn-back { text-decoration: none; color: #64748b; font-weight: 600; background: #f8fafc; padding: 8px 16px; border-radius: 30px; font-size: 0.9rem; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
+        .header h2 { margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 12px; }
+        .btn-back { text-decoration: none; color: #64748b; font-weight: 600; display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 10px 20px; border-radius: 30px; transition: 0.2s; border: 1px solid #e2e8f0; }
+        .btn-back:hover { background: #e2e8f0; color: var(--dark); }
 
-        /* 2. MOBILE RESPONSIVE TABLE FIX */
-        .table-wrapper { width: 100%; overflow-x: auto; border-radius: 12px; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; } /* Ensures table doesn't squish on phones */
+        /* TABLE STYLES */
+        .table-responsive { width: 100%; overflow-x: auto; border-radius: 12px; }
+        table { width: 100%; border-collapse: collapse; min-width: 650px; }
+        th { text-align: left; padding: 18px; color: #64748b; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; }
+        td { padding: 18px; border-bottom: 1px solid #f8fafc; font-size: 0.95rem; }
 
-        th { text-align: left; padding: 12px; color: #64748b; font-size: 0.75rem; border-bottom: 2px solid #e2e8f0; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+        /* ACTION BADGES */
+        .badge { padding: 6px 14px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+        .badge-buy { background: #eff6ff; color: #2563eb; }
+        .badge-sold { background: #ecfdf5; color: #059669; }
+        .badge-del { background: #fef2f2; color: #dc2626; }
+        .badge-add { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
 
-        /* BADGES */
-        .badge { padding: 5px 10px; border-radius: 30px; font-size: 0.7rem; font-weight: 700; display: inline-block; }
-        .badge-buy { background: #dbeafe; color: #1e40af; }
-        .badge-sold { background: #dcfce7; color: #166534; }
-        .badge-add { background: #f3f4f6; color: #374151; }
-        .badge-del { background: #fee2e2; color: #991b1b; }
-
-        /* EMPTY STATE */
-        .empty-state { text-align: center; padding: 40px; color: #94a3b8; display: none; }
-
-        @media (max-width: 600px) {
-            body { padding: 10px; }
-            .container { padding: 15px; }
-            .header h2 { font-size: 1.1rem; }
+        @media (max-width: 768px) {
+            .header h2 { font-size: 1.2rem; }
+            .user-pill { display: none; }
+            .container { margin: 20px auto; }
         }
     </style>
 </head>
 <body>
 
+<nav>
+    <div class="brand"><i class="fas fa-leaf"></i> FarmMarket Pro</div>
+    <div class="nav-actions" style="display:flex; align-items:center; gap:15px;">
+        <div class="user-pill" id="userDisplay"></div>
+        <button class="btn-logout" onclick="logout()"><i class="fas fa-power-off"></i></button>
+    </div>
+</nav>
+
 <div class="container">
-    <div class="header">
-        <h2 id="pageTitle"><i class="fas fa-history" style="color:#3b82f6;"></i> Transaction Log</h2>
-        <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> Back</a>
-    </div>
+    <div class="card">
+        <div class="header">
+            <h2 id="pageTitle"><i class="fas fa-history" style="color:var(--primary);"></i> Transaction Log</h2>
+            <a href="index.html" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        </div>
 
-    <div id="loading" style="text-align:center; padding:20px; color:#64748b;">Connecting to Neon Cloud...</div>
+        <div id="loading" style="text-align:center; padding:40px; color:#64748b;">
+            <i class="fas fa-spinner fa-spin"></i> Fetching records from Neon Cloud...
+        </div>
 
-    <div class="table-wrapper">
-        <table id="historyTable" style="display:none;">
-            <thead>
-            <tr>
-                <th>Time</th>
-                <th>Action</th>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Total</th>
-            </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
-    </div>
+        <div class="table-responsive">
+            <table id="historyTable" style="display:none;">
+                <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Total (₹)</th>
+                </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
 
-    <div id="emptyState" class="empty-state">
-        <i class="fas fa-receipt" style="font-size: 2rem;"></i>
-        <p>No records found in cloud database.</p>
+        <div id="emptyState" style="display:none; text-align:center; padding:60px; color:#94a3b8;">
+            <i class="fas fa-receipt" style="font-size:3rem; margin-bottom:15px; opacity:0.3;"></i>
+            <p>No transactions found for this account.</p>
+        </div>
     </div>
 </div>
 
 <script>
-    // 3. THE AUTOMATIC URL SWITCHER
+    // AUTOMATIC URL SWITCHER
     const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
         ? "http://localhost:8080"
         : "https://farmer-inventory-managment.onrender.com";
@@ -81,37 +103,35 @@
     const user = localStorage.getItem("loggedInUser");
     const role = localStorage.getItem("userRole");
 
-    // Update UI based on Role
+    document.getElementById("userDisplay").innerText = user;
+
     if (role === "FARMER") {
-        document.getElementById("pageTitle").innerHTML = `<i class="fas fa-warehouse" style="color:#10b981;"></i> Inventory Log`;
+        document.getElementById("pageTitle").innerHTML = `<i class="fas fa-warehouse" style="color:var(--primary);"></i> Inventory Log`;
     }
 
     window.onload = async function() {
         if (!user) { window.location.href = "login.html"; return; }
 
         try {
-            // Select Cloud Endpoint based on Role
             const url = (role === "FARMER")
                 ? `${HISTORY_ENDPOINT}/farmer/${user}`
                 : `${HISTORY_ENDPOINT}/buyer/${user}`;
 
             const response = await fetch(url);
-            if (!response.ok) throw new Error("Cloud Fetch Failed");
+            if (!response.ok) throw new Error("Cloud fetch failed");
 
             const data = await response.json();
             renderTable(data);
-
         } catch (error) {
-            console.error(error);
-            document.getElementById("loading").innerText = "Cloud server is waking up... please refresh in 30 seconds.";
+            document.getElementById("loading").innerHTML = `<i class="fas fa-exclamation-triangle"></i> Cloud server waking up... please refresh in 30s.`;
         }
     };
 
     function renderTable(data) {
         document.getElementById("loading").style.display = "none";
         const table = document.getElementById("historyTable");
-        const empty = document.getElementById("emptyState");
         const tbody = document.getElementById("tableBody");
+        const empty = document.getElementById("emptyState");
 
         if (!data || data.length === 0) {
             empty.style.display = "block";
@@ -134,19 +154,20 @@
                 badgeClass = "badge-del"; icon = "trash";
             }
 
-            const date = new Date(t.timestamp).toLocaleDateString() + " " + new Date(t.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const total = (t.price * t.quantity).toFixed(0);
+            const time = new Date(t.timestamp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
             tbody.innerHTML += `
-            <tr>
-                <td style="color:#64748b; font-size:0.75rem;">${date}</td>
-                <td><span class="badge ${badgeClass}"><i class="fas fa-${icon}"></i> ${actionText}</span></td>
-                <td><strong>${t.productName}</strong></td>
-                <td>${t.quantity}</td>
-                <td style="font-weight:700;">₹${total}</td>
-            </tr>`;
+                <tr>
+                    <td style="color:#64748b; font-size:0.85rem;">${time}</td>
+                    <td><span class="badge ${badgeClass}"><i class="fas fa-${icon}"></i> ${actionText}</span></td>
+                    <td><b style="color:var(--dark);">${t.productName}</b></td>
+                    <td>${t.quantity} Units</td>
+                    <td><b style="color:var(--dark);">₹${(t.price * t.quantity).toFixed(0)}</b></td>
+                </tr>`;
         });
     }
+
+    function logout() { localStorage.clear(); window.location.href = "login.html"; }
 </script>
 </body>
 </html>
