@@ -323,13 +323,15 @@
     function renderFarmerTable(data) {
         const tbody = document.querySelector("#farmerTable tbody"); tbody.innerHTML = "";
         data.forEach(p => {
-            tbody.innerHTML += `<tr style="border-bottom:1px solid #eee;"><td style="padding:15px;">${p.productId}</td><td><b>${p.productName}</b></td><td>${p.quantity}</td><td>₹${p.price}</td><td>${p.expiryDate || '--'}</td><td><button onclick="editItem('${p.productId}')" class="action-btn btn-edit"><i class="fas fa-pen"></i></button><button onclick="deleteItem('${p.productId}')" class="action-btn btn-delete"><i class="fas fa-trash"></i></button></td></tr>`;
+            // FIX: Using productId || id to handle varying field names from backend/Neon database
+            const realId = p.productId || p.id;
+            tbody.innerHTML += `<tr style="border-bottom:1px solid #eee;"><td style="padding:15px;">${realId}</td><td><b>${p.productName}</b></td><td>${p.quantity}</td><td>₹${p.price}</td><td>${p.expiryDate || '--'}</td><td><button onclick="editItem('${realId}')" class="action-btn btn-edit"><i class="fas fa-pen"></i></button><button onclick="deleteItem('${realId}')" class="action-btn btn-delete"><i class="fas fa-trash"></i></button></td></tr>`;
         });
     }
 
     function editItem(id) {
-        const p = allProducts.find(x => x.productId === id); if(!p) return;
-        document.getElementById("pId").value = p.productId; document.getElementById("pId").disabled = true;
+        const p = allProducts.find(x => (x.productId || x.id) === id); if(!p) return;
+        document.getElementById("pId").value = p.productId || p.id; document.getElementById("pId").disabled = true;
         document.getElementById("pName").value = p.productName; document.getElementById("pQty").value = p.quantity;
         document.getElementById("pPrice").value = p.price; document.getElementById("pDate").value = p.expiryDate;
         document.getElementById("pPhone").value = p.farmerPhone || ""; document.getElementById("pEmail").value = p.farmerEmail || "";
@@ -386,11 +388,12 @@
         const grid = document.getElementById("buyerGrid"); grid.innerHTML = "";
         data.forEach(p => {
             const isSold = p.quantity === 0;
-            grid.innerHTML += `<div class="product-card"><div class="card-img"><img src="${getImg(p.productName)}" style="width:100%;height:100%;object-fit:cover;"><div class="price-tag">₹${p.price}/unit</div></div><div class="card-body"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>${p.productName}</h3><span style="font-size:0.8rem;background:#ecfdf5;padding:2px 8px;border-radius:4px;">${p.quantity} Units</span></div><p style="color:#64748b; font-size:0.9rem"><i class="fas fa-user"></i> ${p.farmerName}</p><div style="display:grid; grid-template-columns:1fr 3fr; gap:10px; margin-top:15px;"><button class="btn-contact" onclick="showContact('${p.farmerName}','${p.farmerPhone}','${p.farmerEmail}')"><i class="fas fa-phone"></i></button>${isSold ? `<button disabled style="background:#e2e8f0; border:none; border-radius:8px; font-weight:600; color:#94a3b8;">Sold Out</button>` : `<button class="btn-buy" onclick="openBuyModal('${p.productId}')">Buy Now</button>`}</div></div></div>`;
+            const pid = p.productId || p.id;
+            grid.innerHTML += `<div class="product-card"><div class="card-img"><img src="${getImg(p.productName)}" style="width:100%;height:100%;object-fit:cover;"><div class="price-tag">₹${p.price}/unit</div></div><div class="card-body"><div style="display:flex; justify-content:space-between; align-items:center;"><h3>${p.productName}</h3><span style="font-size:0.8rem;background:#ecfdf5;padding:2px 8px;border-radius:4px;">${p.quantity} Units</span></div><p style="color:#64748b; font-size:0.9rem"><i class="fas fa-user"></i> ${p.farmerName}</p><div style="display:grid; grid-template-columns:1fr 3fr; gap:10px; margin-top:15px;"><button class="btn-contact" onclick="showContact('${p.farmerName}','${p.farmerPhone}','${p.farmerEmail}')"><i class="fas fa-phone"></i></button>${isSold ? `<button disabled style="background:#e2e8f0; border:none; border-radius:8px; font-weight:600; color:#94a3b8;">Sold Out</button>` : `<button class="btn-buy" onclick="openBuyModal('${pid}')">Buy Now</button>`}</div></div></div>`;
         });
     }
 
-    function openBuyModal(id) { selectedProduct = allProducts.find(p => p.productId === id); currentQty = 1; document.getElementById("buyName").innerText = selectedProduct.productName; document.getElementById("buyFarmer").innerText = "by " + (selectedProduct.farmerName || "Unknown"); document.getElementById("buyImg").src = getImg(selectedProduct.productName); document.getElementById("buyQtyInput").value = 1; updatePriceDisplay(); document.getElementById("buyModal").style.display = "flex"; }
+    function openBuyModal(id) { selectedProduct = allProducts.find(p => (p.productId || p.id) === id); currentQty = 1; document.getElementById("buyName").innerText = selectedProduct.productName; document.getElementById("buyFarmer").innerText = "by " + (selectedProduct.farmerName || "Unknown"); document.getElementById("buyImg").src = getImg(selectedProduct.productName); document.getElementById("buyQtyInput").value = 1; updatePriceDisplay(); document.getElementById("buyModal").style.display = "flex"; }
     function updateQty(change) { let newQty = currentQty + change; if(newQty < 1) newQty = 1; if(newQty > selectedProduct.quantity) newQty = selectedProduct.quantity; currentQty = newQty; document.getElementById("buyQtyInput").value = currentQty; updatePriceDisplay(); }
     function manualQtyInput() { const val = parseInt(document.getElementById("buyQtyInput").value); if(!isNaN(val) && val > 0) { currentQty = val > selectedProduct.quantity ? selectedProduct.quantity : val; } else { currentQty = 1; } document.getElementById("buyQtyInput").value = currentQty; updatePriceDisplay(); }
     function updatePriceDisplay() { document.getElementById("buyTotalPrice").innerText = "₹" + (currentQty * selectedProduct.price).toFixed(2); }
@@ -401,3 +404,5 @@
 </script>
 </body>
 </html>
+
+Would you like me to double-check the server settings on Render to make sure the delete requests are authorized?
